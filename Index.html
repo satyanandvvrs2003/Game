@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Swipe Dodge – ULTIMATE EDITION</title>
+
+<style>
+html,body{
+ margin:0;padding:0;overflow:hidden;
+ touch-action:none;
+ font-family:Arial;
+ background:#000;
+}
+
+/* GAME */
+#game{
+ position:relative;
+ width:100vw;height:100vh;
+ background:url("background.png") center/cover no-repeat;
+ transition: background 0.3s ease;
+}
+
+/* SCREEN SHAKE */
+.shake{
+ animation:shake 0.25s;
+}
+@keyframes shake{
+ 0%{transform:translate(0,0)}
+ 20%{transform:translate(-8px,6px)}
+ 40%{transform:translate(8px,-6px)}
+ 60%{transform:translate(-6px,8px)}
+ 80%{transform:translate(6px,-8px)}
+ 100%{transform:translate(0,0)}
+}
+
+/* COMBO FLASH */
+.comboFlash{
+ animation: comboGlow 0.8s ease-out;
+}
+@keyframes comboGlow{
+ 0%,100%{text-shadow:0 0 6px white}
+ 50%{text-shadow:0 0 20px gold, 0 0 30px gold}
+}
+
+/* PLAYER */
+#human{
+ position:absolute;
+ bottom:20px;
+ width:80px;height:90px;
+ background:url("character.png") center/contain no-repeat;
+ transition:left 0.1s ease;
+}
+.shieldActive{
+ filter:drop-shadow(0 0 16px cyan);
+ animation: shieldPulse 1s infinite;
+}
+@keyframes shieldPulse{
+ 0%,100%{filter:drop-shadow(0 0 16px cyan)}
+ 50%{filter:drop-shadow(0 0 24px cyan)}
+}
+
+/* BOMBS */
+.bomb{
+ position:absolute;
+ background:url("bomb.png") center/contain no-repeat;
+ transition: top 0.03s linear;
+}
+.small{width:50px;height:50px;}
+.big{width:80px;height:80px;}
+
+/* FAST BOMBS */
+.fast{animation: bombShake 0.1s infinite; filter:drop-shadow(0 0 8px red);}
+@keyframes bombShake{
+ 0%,100%{transform:translateX(0)}
+ 50%{transform:translateX(3px)}
+}
+
+/* SHIELD */
+.shield{
+ position:absolute;
+ width:34px;height:34px;
+ background:radial-gradient(circle,#00ffff,#0066ff);
+ border-radius:50%;
+ box-shadow:0 0 14px cyan;
+ animation: shieldFloat 2s ease-in-out infinite;
+}
+@keyframes shieldFloat{
+ 0%,100%{transform:translateY(0)}
+ 50%{transform:translateY(-5px)}
+}
+
+/* BLAST */
+.blast{
+ position:absolute;
+ border:3px solid orange;
+ border-radius:50%;
+ animation:blast 0.6s ease-out forwards;
+ pointer-events:none;
+}
+@keyframes blast{
+ from{transform:scale(1);opacity:1}
+ to{transform:scale(6);opacity:0}
+}
+
+/* NEAR MISS */
+.nearMiss{
+ position:absolute;
+ color:gold;
+ font-size:24px;
+ font-weight:bold;
+ pointer-events:none;
+ animation:nearMissAnim 0.5s ease-out forwards;
+ z-index:10;
+}
+@keyframes nearMissAnim{
+ from{transform:scale(0);opacity:1}
+ 50%{transform:scale(1.5)}
+ to{transform:scale(2);opacity:0}
+}
+
+/* HUD */
+#hud{
+ position:absolute;
+ top:10px;left:10px;
+ color:white;font-size:15px;
+ text-shadow:0 0 6px black;
+ z-index:2;
+}
+
+/* THEME BTN */
+#themeBtn{
+ position:absolute;
+ top:10px;right:10px;
+ z-index:3;
+}
+button{
+ padding:10px 16px;
+ font-size:15px;
+ border:none;border-radius:10px;
+ background:#2196f3;
+ color:white;
+ cursor:pointer;
+ transition: all 0.2s;
+}
+button:hover, button:active{
+ background:#1976d2;
+ transform:scale(1.05);
+}
+
+/* OVERLAYS */
+.overlay{
+ position:absolute;inset:0;
+ background:rgba(0,0,0,.9);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ color:white;
+ z-index:5;
+}
+.card{
+ background:#111;
+ padding:20px;
+ border-radius:18px;
+ width:300px;
+ box-shadow:0 0 30px rgba(0,255,255,0.3);
+}
+h2{font-size:28px; margin:0 0 10px 0; text-shadow:0 0 10px cyan;}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<!-- START -->
+<div id="start" class="overlay">
+ <div class="card">
+  <h2>🚀 Swipe Dodge ULTIMATE</h2>
+  <p>Swipe left & right to avoid bombs!<br>Build COMBOS for MASSIVE scores!</p>
+  <button id="startBtn">⚡ START GAME</button>
+ </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+ ❤️ <span id="lives">3</span><br>
+ 🎯 <span id="score">0</span> <span id="comboTxt"></span><br>
+ 🏆 High: <span id="high">0</span><br>
+ 🛡️ <span id="shieldTxt">❌</span> <span id="levelTxt">LV1</span>
+</div>
+
+<div id="themeBtn">
+ <button onclick="toggleTheme()">🌓</button>
+</div>
+
+<div id="human"></div>
+
+<!-- GAME OVER -->
+<div id="gameover" class="overlay" style="display:none">
+ <div class="card">
+  <h2>💥 Game Over</h2>
+  <div style="font-size:40px; color:gold; margin:10px 0;" id="finalScore">0</div>
+  <div>🏆 High Score: <span id="finalHigh">0</span></div>
+  <div style="font-size:14px; opacity:0.8; margin:10px 0;">
+   x<span id="finalCombo">0</span> Combo!
+  </div><br>
+  <button onclick="restartGame()">🔄 PLAY AGAIN</button>
+ </div>
+</div>
+
+</div>
+
+<script>
+/* ============ AUDIO (WORKING) ============ */
+let blastAudio, hitAudio, shieldAudio;
+let audioUnlocked=false;
+
+function unlockAudio(){
+ blastAudio=new Audio("blast.mp3");
+ hitAudio=new Audio("hit.mp3");
+ shieldAudio=new Audio("shield.mp3");
+
+ blastAudio.play().then(()=>{
+  blastAudio.pause();
+  blastAudio.currentTime=0;
+  audioUnlocked=true;
+ }).catch(()=>{});
+}
+function playBlast(){ if(audioUnlocked){ blastAudio.currentTime=0; blastAudio.play(); } }
+function playHit(){ if(audioUnlocked){ hitAudio.currentTime=0; hitAudio.play(); } }
+function playShield(){ if(audioUnlocked){ shieldAudio.currentTime=0; shieldAudio.play(); } }
+
+/* ============ FX HELPERS ============ */
+function screenShake(){
+ game.classList.add("shake");
+ setTimeout(()=>game.classList.remove("shake"),30);
+}
+
+function blastFX(x,y,size){
+ let b=document.createElement("div");
+ b.className="blast";
+ b.style.width=size+"px";
+ b.style.height=size+"px";
+ b.style.left=(x+size/2)+"px";
+ b.style.top=y+"px";
+ game.appendChild(b);
+ setTimeout(()=>b.remove(),600);
+}
+
+function nearMissFX(x,y){
+ let nm=document.createElement("div");
+ nm.className="nearMiss";
+ nm.innerText="⚡";
+ nm.style.left=x+"px";
+ nm.style.top=y+"px";
+ game.appendChild(nm);
+ setTimeout(()=>nm.remove(),500);
+}
+
+/* ============ ELEMENTS ============ */
+const game=document.getElementById("game");
+const human=document.getElementById("human");
+const startScr=document.getElementById("start");
+const gameover=document.getElementById("gameover");
+const livesEl=document.getElementById("lives");
+const scoreEl=document.getElementById("score");
+const highEl=document.getElementById("high");
+const shieldTxt=document.getElementById("shieldTxt");
+const finalScoreEl=document.getElementById("finalScore");
+const finalHighEl=document.getElementById("finalHigh");
+const finalComboEl=document.getElementById("finalCombo");
+const comboTxt=document.getElementById("comboTxt");
+const levelTxt=document.getElementById("levelTxt");
+const startBtn=document.getElementById("startBtn");
+
+let W=innerWidth,H=innerHeight;
+
+/* ============ GAME STATE ============ */
+let hx=W/2-25,targetX=hx;
+let bombs=[],shields=[];
+let lives=3,score=0,highScore=0;
+let hasShield=false;
+let running=false;
+let spawnTimer=null;
+let bombCount=0;
+let isDark=false;
+
+// 🔥 ADDICTIVE FEATURES
+let difficultyLevel=1;
+let bombSpawnRate=700;
+let baseSpeed=4;
+let combo=0;
+let lastSpawnTime=0;
+
+/* ============ HIGH SCORE ============ */
+highScore=Number(localStorage.getItem("highscore")||0);
+highEl.innerText=highScore;
+
+/* ============ START GAME ============ */
+startBtn.addEventListener("click", async ()=>{
+ await unlockAudio();
+ startScr.style.display="none";
+ startGame();
+});
+
+/* ============ CORE GAME FUNCTIONS ============ */
+function startGame(){
+ resetGame();
+ running=true;
+ difficultyLevel=1;
+ bombSpawnRate=700;
+ baseSpeed=4;
+ updateDifficulty();
+ spawnTimer=setInterval(spawnBomb, bombSpawnRate);
+}
+
+function resetGame(){
+ bombs.forEach(b=>b.el.remove());
+ shields.forEach(s=>s.el.remove());
+ bombs=[];shields=[];
+ lives=3;score=0;hasShield=false;combo=0;
+ livesEl.innerText=lives;
+ scoreEl.innerText=score;
+ shieldTxt.innerText="❌";
+ levelTxt.innerText="LV1";
+ comboTxt.innerText="";
+ human.classList.remove("shieldActive");
+}
+
+function updateDifficulty(){
+ difficultyLevel=Math.min(5, Math.floor(score/10)+1);
+ bombSpawnRate=Math.max(300, 700-(difficultyLevel-1)*80);
+ baseSpeed=4+(difficultyLevel-1)*0.5;
+ levelTxt.innerText=`LV${difficultyLevel}`;
+ 
+ // Level up feedback
+ if(score % 10 === 0 && score > 0){
+  screenShake();
+  shieldTxt.innerText=`⚡LV${difficultyLevel}`;
+  setTimeout(()=>shieldTxt.innerText="❌",1000);
+ }
+}
+
+/* ============ SPAWN BOMB ============ */
+function spawnBomb(){
+ if(!running) return;
+
+ bombCount++;
+ let isBig=bombCount%7===0;
+ let size=isBig?70:40;
+ let speed=isBig?(baseSpeed*0.6):(baseSpeed+(Math.random()*difficultyLevel*0.3));
+
+ let el=document.createElement("div");
+ el.className="bomb "+(isBig?"big":"small")+(difficultyLevel>3?" fast":"");
+
+ let b={el,x:Math.random()*(W-size),y:-size,size,speed};
+ el.style.left=b.x+"px";
+ game.appendChild(el);
+ bombs.push(b);
+}
+
+/* ============ SPAWN SHIELD ============ */
+setInterval(()=>{
+ if(!running||hasShield) return;
+ let el=document.createElement("div");
+ el.className="shield";
+ let s={el,x:Math.random()*(W-34),y:-40,speed:baseSpeed*0.5};
+ el.style.left=s.x+"px";
+ game.appendChild(el);
+ shields.push(s);
+},Math.max(5000,9000-difficultyLevel*500));
+
+/* ============ COLLISION ============ */
+function hit(a,b){
+ let A=a.getBoundingClientRect(),B=b.getBoundingClientRect();
+ return !(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom);
+}
+
+/* ============ MAIN LOOP ============ */
+function loop(){
+ hx+=(targetX-hx)*0.3;
+ human.style.left=hx+"px";
+
+ if(running){
+  bombs.forEach((b,i)=>{
+   b.y+=b.speed;
+   b.el.style.top=b.y+"px";
+
+   // COLLISION CHECK
+   if(hit(human,b.el)){
+    b.el.remove();bombs.splice(i,1);
+    if(hasShield){
+     hasShield=false;
+     shieldTxt.innerText="❌";
+     human.classList.remove("shieldActive");
+     playShield();
+     screenShake();
+     return;
+    }
+    // HIT PLAYER
+    playHit();
+    screenShake();
+    lives--;livesEl.innerText=lives;
+    combo=0;comboTxt.innerText="";
+    if(lives<=0) endGame();
+    return;
+   }
+
+   // BOMB MISSED (SCORE + COMBO)
+   if(b.y>H){
+    playBlast();
+    blastFX(b.x,b.y,b.size);
+    screenShake();
+    b.el.remove();bombs.splice(i,1);
+    
+    // 🔥 NEAR MISS CHECK
+    let playerRect=human.getBoundingClientRect();
+    let bombRect=b.el.getBoundingClientRect();
+    let distance=Math.hypot(playerRect.left-bombRect.left,playerRect.top-bombRect.top);
+    
+    combo++;
+    if(distance<90){ // NEAR MISS BONUS
+     score+=difficultyLevel*2;
+     nearMissFX(bombRect.left,bombRect.top);
+     scoreEl.classList.add("comboFlash");
+     setTimeout(()=>scoreEl.classList.remove("comboFlash"),800);
+    }else{
+     score+=difficultyLevel*(combo>5?3:1);
+    }
+    
+    scoreEl.innerText=score;
+    
+    // 🔥 COMBO DISPLAY
+    if(combo>=3){
+     comboTxt.innerText=`x${combo}!`;
+     scoreEl.style.color="gold";
+     setTimeout(()=>{
+      scoreEl.style.color="white";
+      if(combo<5) comboTxt.innerText="";
+     },800);
+    }
+    
+    updateDifficulty();
+   }
+  });
+
+  // SHIELDS
+  shields.forEach((s,i)=>{
+   s.y+=s.speed;
+   s.el.style.top=s.y+"px";
+   if(hit(human,s.el)){
+    hasShield=true;
+    shieldTxt.innerText="🛡️";
+    human.classList.add("shieldActive");
+    playShield();
+    combo=0;comboTxt.innerText="";
+    s.el.remove();shields.splice(i,1);
+   }
+   if(s.y>H){
+    s.el.remove();shields.splice(i,1);
+   }
+  });
+  
+  // Update HUD
+  comboTxt.innerText = combo>=3 ? `x${combo}` : '';
+  levelTxt.innerText = `LV${difficultyLevel}`;
+ }
+ 
+ requestAnimationFrame(loop);
+}
+loop();
+
+/* ============ GAME OVER ============ */
+function endGame(){
+ running=false;
+ clearInterval(spawnTimer);
+ 
+ finalScoreEl.innerText=score;
+ finalComboEl.innerText=combo;
+ 
+ // 🔥 PERFECT RUN BONUS
+ if(combo>=15 && lives===3){
+  score*=2;
+  finalScoreEl.innerHTML=`PERFECT RUN! ⭐<br>${score}`;
+ }
+ 
+ if(score>highScore){
+  highScore=score;
+  localStorage.setItem("highscore",highScore);
+ }
+ 
+ highEl.innerText=highScore;
+ finalHighEl.innerText=highScore;
+ gameover.style.display="flex";
+ 
+ combo=0;
+}
+
+/* ============ RESTART ============ */
+function restartGame(){
+ gameover.style.display="none";
+ startGame();
+}
+
+/* ============ CONTROLS ============ */
+let startX=0,startHX=0;
+game.addEventListener("touchstart",e=>{
+ startX=e.touches[0].clientX;
+ startHX=targetX;
+});
+game.addEventListener("touchmove",e=>{
+ let dx=e.touches[0].clientX-startX;
+ targetX=startHX+dx;
+ targetX=Math.max(0,Math.min(W-50,targetX));
+});
+
+/* ============ DARK MODE ============ */
+function toggleTheme(){
+ isDark=!isDark;
+ game.style.background=isDark
+  ? 'url("background2.png") center/cover no-repeat'
+  : 'url("background.png") center/cover no-repeat';
+}
+</script>
+
+</body>
+</html>
