@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Swipe Dodge – ULTIMATE EDITION</title>
-
+<!-- PWA META -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 html,body{
  margin:0;padding:0;overflow:hidden;
@@ -220,7 +226,7 @@ let audioUnlocked=false;
 function unlockAudio(){
  blastAudio=new Audio("blast.mp3");
  hitAudio=new Audio("hit.mp3");
- shieldAudio=new Audio("shield.mp3");
+ shieldAudio=new Audio("sheild.mp3");
 
  blastAudio.play().then(()=>{
   blastAudio.pause();
@@ -522,6 +528,16 @@ function toggleTheme(){
  game.style.background=isDark
   ? 'url("background2.png") center/cover no-repeat'
   : 'url("background.png") center/cover no-repeat';
+}
+</script>
+<!-- SERVICE WORKER REGISTER -->
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js")
+      .then(() => console.log("Service Worker Registered"))
+      .catch(err => console.log("SW Error", err));
+  });
 }
 </script>
 
